@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/userSchema');
+const md5 = require('md5');
 
 const homePage = async (req, res) => {
   res.render('home');
@@ -25,7 +26,7 @@ const registerPost = async (req, res) => {
   try {
     const newUser = await User.create({
       email: req.body.username,
-      password: req.body.password,
+      password: md5(req.body.password),
     });
 
     res.render('secrets');
@@ -36,9 +37,9 @@ const registerPost = async (req, res) => {
 
 const loginPost = async (req, res) => {
   try {
-    const { username, password } = req.body;
-    // const username = req.body.username;
-    // const password = req.body.password;
+    //const { username, password } = req.body;
+    const username = req.body.username;
+    const password = md5(req.body.password);
 
     User.findOne({ email: username })
       .then((result) => {
