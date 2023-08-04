@@ -6,3 +6,6 @@ package-lock.json
 
 # Ignore .env file
 .env
+
+# Ignore txt file
+txt.txt

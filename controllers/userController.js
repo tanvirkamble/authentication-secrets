@@ -1,6 +1,8 @@
 const express = require('express');
 const User = require('../models/userSchema');
-const md5 = require('md5');
+//const md5 = require('md5'); // without salting hash fuctn
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 const homePage = async (req, res) => {
   res.render('home');
@@ -22,11 +24,21 @@ const submitPage = async (req, res) => {
   res.render('submit');
 };
 
+const hashPassword = async (password, saltRounds) => {
+  try {
+    const hash = await bcrypt.hash(password, saltRounds);
+    return hash;
+  } catch (err) {
+    throw err;
+  }
+};
+
 const registerPost = async (req, res) => {
   try {
+    const hashedPassword = await hashPassword(req.body.password, saltRounds);
     const newUser = await User.create({
       email: req.body.username,
-      password: md5(req.body.password),
+      password: hashedPassword,
     });
 
     res.render('secrets');
@@ -37,19 +49,24 @@ const registerPost = async (req, res) => {
 
 const loginPost = async (req, res) => {
   try {
-    //const { username, password } = req.body;
     const username = req.body.username;
-    const password = md5(req.body.password);
+    const providedPassword = req.body.password;
 
-    User.findOne({ email: username })
-      .then((result) => {
-        if (result.password === password) {
-          res.render('secrets');
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    const user = await User.findOne({ email: username });
+    if (user) {
+      const isPasswordMatch = await bcrypt.compare(
+        providedPassword,
+        user.password
+      );
+      if (isPasswordMatch) {
+        res.render('secrets');
+      } else {
+        // Password doesn't match
+        console.log('err: password doesnt match');
+      }
+    } else {
+      console.log('err: user not found');
+    }
   } catch (err) {
     console.log(err);
   }
