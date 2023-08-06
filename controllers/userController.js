@@ -1,8 +1,12 @@
 const express = require('express');
 const User = require('../models/userSchema');
 //const md5 = require('md5'); // without salting hash fuctn
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
+// const bcrypt = require('bcrypt');
+// const saltRounds = 10;
+const session = require('express-session');
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
+const { functions } = require('lodash');
 
 const homePage = async (req, res) => {
   res.render('home');
@@ -17,60 +21,47 @@ const registerPage = async (req, res) => {
 };
 
 const secretsPage = async (req, res) => {
-  res.render('secrets');
+  if (req.isAuthenticated()) {
+    res.render('secrets');
+  } else {
+    res.redirect('/login');
+  }
 };
 
 const submitPage = async (req, res) => {
   res.render('submit');
 };
 
-const hashPassword = async (password, saltRounds) => {
-  try {
-    const hash = await bcrypt.hash(password, saltRounds);
-    return hash;
-  } catch (err) {
-    throw err;
-  }
-};
+// const hashPassword = async (password, saltRounds) => {
+//   try {
+//     const hash = await bcrypt.hash(password, saltRounds);
+//     return hash;
+//   } catch (err) {
+//     throw err;
+//   }
+// };
 
 const registerPost = async (req, res) => {
-  try {
-    const hashedPassword = await hashPassword(req.body.password, saltRounds);
-    const newUser = await User.create({
-      email: req.body.username,
-      password: hashedPassword,
-    });
+  // const { email, password } = req.body;
+  console.log(req.body);
 
-    res.render('secrets');
-  } catch (err) {
-    console.log(err);
-  }
-};
-
-const loginPost = async (req, res) => {
-  try {
-    const username = req.body.username;
-    const providedPassword = req.body.password;
-
-    const user = await User.findOne({ email: username });
-    if (user) {
-      const isPasswordMatch = await bcrypt.compare(
-        providedPassword,
-        user.password
-      );
-      if (isPasswordMatch) {
-        res.render('secrets');
+  User.register(
+    { username: req.body.email },
+    req.body.password,
+    (err, user) => {
+      if (err) {
+        console.log(err);
+        res.redirect('/register');
       } else {
-        // Password doesn't match
-        console.log('err: password doesnt match');
+        passport.authenticate('local')(req, res, () => {
+          res.redirect('/secrets');
+        });
       }
-    } else {
-      console.log('err: user not found');
     }
-  } catch (err) {
-    console.log(err);
-  }
+  );
 };
+
+const loginPost = async (req, res) => {};
 
 module.exports = {
   homePage,
